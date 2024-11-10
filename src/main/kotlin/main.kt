@@ -31,6 +31,8 @@ fun main(args: Array<String>) {
     var tastingFile: String? = null
     var generatePdf = true
 
+    // Read Parameters
+
     while (argIterator.hasNext()) {
         when (val arg = argIterator.next()) {
             "-v", "--vault" -> argParam(argIterator)?.let { configs.config.vaultPath = it } ?: return
@@ -48,6 +50,8 @@ fun main(args: Array<String>) {
         }
     }
 
+    // Save current Settings
+
     println("Vault Directory: ${configs.config.vault}")
     println("Output Directory: ${configs.config.output}")
 
@@ -60,22 +64,25 @@ fun main(args: Array<String>) {
         return
     }
 
+    // Generate TEX and PDF file
+
     val pdfGenerator = PdfGenerator(configs.config)
 
     when(val res = pdfGenerator.selectFromTastingFile(Path(tastingFile))) {
         is SelectResult.FileNotFound -> println("File not found: $tastingFile")
         is SelectResult.MissingFiles -> println("Missing files:\n${res.missingPaths.joinToString("\n")}")
+        is SelectResult.NoFilesFound -> println("No files provided")
         is SelectResult.Success -> {
             println("Generating: TEX in ${configs.config.output}")
             if (pdfGenerator.generateLatexFile() == null) {
                 println("Could not generate file")
                 return
             }
-        }
-    }
 
-    if (generatePdf) {
-        println("Generating PDF...")
-        pdfGenerator.generatePdf()
+            if (generatePdf) {
+                println("Generating PDF...")
+                pdfGenerator.generatePdf()
+            }
+        }
     }
 }

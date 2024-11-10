@@ -1,9 +1,11 @@
 import java.nio.file.Path
 import kotlin.io.path.*
 
+
 sealed class SelectResult {
     data object Success : SelectResult()
     data object FileNotFound : SelectResult()
+    data object NoFilesFound : SelectResult()
     data class MissingFiles(val missingPaths: List<Path>) : SelectResult()
 }
 
@@ -15,17 +17,21 @@ class PdfGenerator(private val config: Configuration) {
         ?: "% bottleneck_insert"
 
     private val texIncludeDirectory = this.javaClass.getResource("whisxy.sty")
-        ?.toURI()?.toPath()
+        ?.toURI()?.toPath()?.parent
         ?: Path(".")
 
     private val _selectWhisky = mutableListOf<Path>()
 
     private var fileName: String = "out"
 
+    /**
+     *
+     */
     fun selectFromTastingFile(tastingFile: Path): SelectResult {
         if(tastingFile.notExists())
             return SelectResult.FileNotFound
 
+        // - [[...]] is an obsidian link, we only want the ... part
         val foundFiles = Regex("""- \[\[([^]]+)]]""")
             .findAll(tastingFile.readText())
             .map { config.vault / "${it.groupValues[1]}.md" }
@@ -35,10 +41,11 @@ class PdfGenerator(private val config: Configuration) {
         if (missing != null)
             return SelectResult.MissingFiles(missing)
 
-        fileName = tastingFile.nameWithoutExtension
+        val found = foundFiles[true] ?: return SelectResult.NoFilesFound
 
+        fileName = tastingFile.nameWithoutExtension
         _selectWhisky.clear()
-        _selectWhisky.addAll(foundFiles[true] ?: listOf())
+        _selectWhisky.addAll(found)
 
         return SelectResult.Success
     }
@@ -72,7 +79,7 @@ class PdfGenerator(private val config: Configuration) {
     fun generatePdf() {
         ProcessBuilder("pdflatex", "-synctex=1", "-output-format=pdf",
             "-output-directory=${config.output / "out"}", "-aux-directory=${config.output / "aux"}",
-            "-include-directory=${texIncludeDirectory.parent}",
+            "-include-directory=${texIncludeDirectory}",
             (config.output / "$fileName.tex").toString())
             .redirectOutput(ProcessBuilder.Redirect.INHERIT)
             .start()
