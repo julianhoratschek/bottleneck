@@ -56,7 +56,9 @@ class PdfGenerator(private val config: Configuration) {
                 |{${if (it.chillFiltered) "Kühlgefiltert" else "Nicht kühlgefiltert"}, ${if (it.coloured) "mit Zuckercouleur" else "ohne Farbstoff"}}
                 |{${it.distillery} (${it.region})}
                 |{${it.age}}
-                |{${it.casks}}""".trimMargin()
+                |{${it.casks}}
+                |
+                |""".trimMargin()
             }
 
         val texFile = config.output / "$fileName.tex"

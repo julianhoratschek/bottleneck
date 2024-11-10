@@ -9,34 +9,28 @@
 \RequirePackage{tabularx}
 \RequirePackage{xcolor}
 
-\RequirePackage[
-    a4paper,
-    textwidth=170mm,
-    top=20mm,
-    left=20mm]{geometry}
-
 % Commands
 
-\newcommand{\parskiplen}{5pt}
-\newcommand{\parindentlen}{6pt}
+\newcommand{\myparskiplen}{5pt}
+\newcommand{\myparindentlen}{6pt}
 
 \newcommand{\whiskey}[7]{
-    \begin{tabularx}{\textwidth}{X X}
+    \begin{tabularx}{\textwidth}{||X X||}
     {\Large #1}
 
     \smallskip
 
-    \setlength{\parskip}{\parskiplen}
+    \setlength{\parskip}{\myparskiplen}
     {
         \small
-        \setlength{\parindent}{\parindentlen}
+        \setlength{\parindent}{\myparindentlen}
 
         \textsc{#2 $\sim$ #3\% vol.}
 
         \textit{#4}
     }
     &
-    \setlength{\parskip}{\parskiplen}
+    \setlength{\parskip}{\myparskiplen}
 
     \includegraphics[height=13pt]{./graphics/brewery} #5
 
@@ -44,7 +38,7 @@
 
     \includegraphics[height=13pt]{./graphics/wine-storage} #7
     \\
-    \setlength{\parskip}{\parskiplen}
+    \setlength{\parskip}{\myparskiplen}
     \color{black!60}
     Aroma:
 

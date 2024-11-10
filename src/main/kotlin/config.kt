@@ -14,6 +14,11 @@ data class Configuration(
         get() = Paths.get(vaultPath).normalize()
     val output: Path
         get() = Paths.get(outputDirectory).normalize()
+
+    fun update() {
+        vaultPath = vault.toString()
+        outputDirectory = output.toString()
+    }
 }
 
 class ConfigurationLoader {
