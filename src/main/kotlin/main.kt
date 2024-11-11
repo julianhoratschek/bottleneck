@@ -74,14 +74,12 @@ fun main(args: Array<String>) {
         is SelectResult.NoFilesFound -> println("No files provided")
         is SelectResult.Success -> {
             println("Generating: TEX in ${configs.config.output}")
-            if (pdfGenerator.generateLatexFile() == null) {
-                println("Could not generate file")
-                return
-            }
-
-            if (generatePdf) {
-                println("Generating PDF...")
-                pdfGenerator.generatePdf()
+            when(val gen = pdfGenerator.generateLatexFile()) {
+                is GenerateLatexResult.BadFiles -> println("Could not read these files:\n${gen.files.joinToString("\n")}")
+                is GenerateLatexResult.Success -> if (generatePdf) {
+                    println("Generating PDF...")
+                    pdfGenerator.generatePdf()
+                }
             }
         }
     }

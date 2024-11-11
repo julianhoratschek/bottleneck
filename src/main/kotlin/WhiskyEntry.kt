@@ -1,5 +1,5 @@
 import java.nio.file.Path
-import kotlin.io.path.readLines
+import kotlin.io.path.readText
 
 data class WhiskyEntry(
     val name: String,
@@ -13,23 +13,35 @@ data class WhiskyEntry(
     val casks: String
 )
 
-fun readWhiskyFile(filePath: Path): WhiskyEntry? {
-    val lines = filePath.readLines().filter { it.startsWith("- ") or it.startsWith("# ") }
+sealed class WhiskyEntryResult {
+    data class Success(val whiskyEntry: WhiskyEntry) : WhiskyEntryResult()
+    data object Failure : WhiskyEntryResult()
+}
 
-    if (lines.size < 9) {
-        println("Warning: Cannot read file $filePath")
-        return null
-    }
+fun readWhiskyFileEx(filePath: Path): WhiskyEntryResult {
+    val text = filePath.readText()
+    println(text)
+    val pattern = Regex("# (.*)\\s+" +
+            "- \\[(.)] Kühlgefiltert\\s+" +
+            "- \\[(.)] Gefärbt\\s+" +
+            "- Typ: (.*)\\s+" +
+            "- Region: (.*)\\s+" +
+            "- Destillerie: (.*)\\s+" +
+            "- Alter: (.*)\\s+" +
+            "- Stärke: (.*)%.*\\s+" +
+            "- Reifung: (.*)\r\n", RegexOption.MULTILINE)
 
-    return WhiskyEntry(
-        name = lines[0].substring(2),
-        chillFiltered = lines[1][3] != ' ',
-        coloured = lines[2][3] != ' ',
-        type = lines[3].substring(7),
-        region = lines[4].substring(10),
-        distillery = lines[5].substring(15).trim('[', ']'),
-        age = lines[6].substring(9),
-        abv = lines[7].substring(10).removeSuffix("% vol.").trim().replace(',', '.'),
-        casks = lines[8].substring(11)
-    )
+    val matchResult = pattern.find(text) ?: return WhiskyEntryResult.Failure
+
+    return WhiskyEntryResult.Success(
+        WhiskyEntry(
+            name = matchResult.groupValues[1],
+            chillFiltered = matchResult.groupValues[2] != " ",
+            coloured = matchResult.groupValues[3] != " ",
+            type = matchResult.groupValues[4],
+            region = matchResult.groupValues[5],
+            distillery = matchResult.groupValues[6].trim('[', ']'),
+            age = matchResult.groupValues[7],
+            abv = matchResult.groupValues[8].replace(',', '.'),
+            casks = matchResult.groupValues[9]))
 }

@@ -9,6 +9,11 @@ sealed class SelectResult {
     data class MissingFiles(val missingPaths: List<Path>) : SelectResult()
 }
 
+sealed class GenerateLatexResult {
+    data object Success : GenerateLatexResult()
+    data class BadFiles(val files: List<Path>) : GenerateLatexResult()
+}
+
 
 class PdfGenerator(private val config: Configuration) {
 
@@ -25,7 +30,9 @@ class PdfGenerator(private val config: Configuration) {
     private var fileName: String = "out"
 
     /**
-     *
+     * Reads a list of obsidian links like:
+     * - [[The Whiskey Name]]
+     * from tastingFile and ensures all the linked files exist.
      */
     fun selectFromTastingFile(tastingFile: Path): SelectResult {
         if(tastingFile.notExists())
@@ -37,10 +44,12 @@ class PdfGenerator(private val config: Configuration) {
             .map { config.vault / "${it.groupValues[1]}.md" }
             .groupBy { it.exists() }
 
+        // Return if any file could not be found
         val missing = foundFiles[false]
         if (missing != null)
             return SelectResult.MissingFiles(missing)
 
+        // Return if we haven't got any file
         val found = foundFiles[true] ?: return SelectResult.NoFilesFound
 
         fileName = tastingFile.nameWithoutExtension
@@ -50,12 +59,18 @@ class PdfGenerator(private val config: Configuration) {
         return SelectResult.Success
     }
 
-    fun generateLatexFile() : Path? {
-        if (_selectWhisky.isEmpty())
-            return null
-
+    fun generateLatexFile(): GenerateLatexResult {
+        val badFiles = mutableListOf<Path>()
         val insertText = _selectWhisky
-            .mapNotNull { readWhiskyFile(it) }
+            .mapNotNull {
+                when(val res = readWhiskyFileEx(it)) {
+                    is WhiskyEntryResult.Success -> res.whiskyEntry
+                    is WhiskyEntryResult.Failure -> {
+                        badFiles.add(it)
+                        null
+                    }
+                }
+            }
             .joinToString("\n") {
                 """\whiskey{${it.name}}
                 |{${it.type}}
@@ -73,7 +88,11 @@ class PdfGenerator(private val config: Configuration) {
         if(!texFile.exists())
             texFile.createFile()
 
-        return texFile.apply { writeText(templateText.replace("% bottleneck_insert", insertText)) }
+        texFile.writeText(templateText.replace("% bottleneck_insert", insertText))
+
+        return if (badFiles.isEmpty())
+            GenerateLatexResult.Success
+        else GenerateLatexResult.BadFiles(badFiles)
     }
 
     fun generatePdf() {
