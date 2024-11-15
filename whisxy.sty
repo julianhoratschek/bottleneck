@@ -1,0 +1,58 @@
+%! Package = whisxy
+%! Author = lando
+%! Date = 10.11.2024
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{whisxy}[2024/11/10 Display Whisk(e)y tasting information in beautify tables]
+
+\RequirePackage{graphicx}
+\RequirePackage{tabularx}
+\RequirePackage{xcolor}
+
+% Commands
+
+\newcommand{\myparskiplen}{5pt}
+\newcommand{\myparindentlen}{6pt}
+
+\newcommand{\whiskey}[7]{
+    \begin{tabularx}{\textwidth}{X X}
+    {\Large #1}
+
+    \smallskip
+
+    \setlength{\parskip}{\myparskiplen}
+    {
+        \small
+        \setlength{\parindent}{\myparindentlen}
+
+        \textsc{#2 $\sim$ #3\% vol.}
+
+        \textit{#4}
+    }
+    &
+    \setlength{\parskip}{\myparskiplen}
+
+    \includegraphics[height=13pt]{./graphics/brewery} #5
+
+    \includegraphics[height=13pt]{./graphics/wine-barrel} #6
+
+    \includegraphics[height=13pt]{./graphics/wine-storage} #7
+    \\
+    \setlength{\parskip}{\myparskiplen}
+    \color{black!60}
+    Aroma:
+
+    Geschmack:
+
+    Abgang:
+    &
+
+    \end{tabularx}
+
+    \begin{center}
+    \includegraphics[width=13em]{./graphics/paragraph-separator}
+    \bigskip
+    \bigbreak
+    \end{center}
+}
+
