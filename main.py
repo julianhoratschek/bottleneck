@@ -2,7 +2,7 @@ import re
 import subprocess
 from pathlib import Path
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 import argparse
 
 
@@ -12,6 +12,8 @@ class WhiskyBase:
 
 @dataclass
 class Whisky(WhiskyBase):
+    """Contains well-formed whiskey-data to transform into text-format"""
+
     type: str
     region: str
     distillery: str
@@ -31,30 +33,25 @@ class Whisky(WhiskyBase):
         return (f"\\whiskey{{{self.name}}}"
                 f"{{{self.type}}}"
                 f"{{{self.abv.replace(',', '.')}}}"
-                f"{{{'Kühlgefiltert' if self.is_chill_filtered() else 'Nicht kühlgefiltert'}, {'mit Zuckercouleur' if self.is_coloured() else 'ohne Farbstoff'}}}"
+                f"{{{'Kühlgefiltert' if self.is_chill_filtered() else 'Nicht kühlgefiltert'}, "
+                f"{'mit Zuckercouleur' if self.is_coloured() else 'ohne Farbstoff'}}}"
                 f"{{{self.distillery.strip('[]')} ({self.region})}}"
                 f"{{{self.age}}}"
                 f"{{{self.casks}}}")
 
 @dataclass
 class WhiskyError(WhiskyBase):
-    class ErrorType(Enum):
-        FileNotFound = 0
-        NoPatternMatch = 1
+    """Contains ill-formed whiskey-data with an error message"""
 
-    error_type: ErrorType
+    class ErrorType(StrEnum):
+        Unknown = "Unknown Error"
+        FileNotFound = "File does not exist"
+        NoPatternMatch = "File does not match pattern"
 
-    def _get_error_msg(self) -> str:
-        match self.error_type:
-            case WhiskyError.ErrorType.FileNotFound:
-                return "File does not exist"
-            case WhiskyError.ErrorType.NoPatternMatch:
-                return "File does not match pattern"
-            case _:
-                return "Unknown Error"
+    error_type: ErrorType = ErrorType.Unknown
 
     def __str__(self):
-        return f"[!!] For dataset {self.name}: {self._get_error_msg()}"
+        return f"[!!] For dataset {self.name}: {self.error_type}"
 
 
 def extract_obsidian_links(file_name: Path) -> list[str]:
@@ -65,6 +62,10 @@ def extract_obsidian_links(file_name: Path) -> list[str]:
 
 
 def read_whisky_data(file_name: Path) -> WhiskyBase:
+    """Extracts whiskey data from a well-formed data file provided by file_name
+    :param file_name: Path to the file to read
+    :return: Whisky on success, otherwise WhiskyError"""
+
     if not file_name.is_file():
         return WhiskyError(file_name.stem, WhiskyError.ErrorType.FileNotFound)
 
@@ -86,10 +87,18 @@ def read_whisky_data(file_name: Path) -> WhiskyBase:
 
 
 def collect_whisky_data(vault_dir: Path, whisky_names: list[str]) -> list[WhiskyBase]:
+    """Reads all files in whisky_names in vault_dir and tries to extract whisky data
+    :param vault_dir: Path to obsidian vault containing files listed in whisky_names
+    :param whisky_names: List of file names to read
+    :return: List containing Whisky-instances for each successfully read dataset, WhiskyError-instances for all other"""
+
     return [read_whisky_data(vault_dir / f"{name}.md") for name in whisky_names]
 
 
 def generate_tex_file(template_path: Path, output_path: Path, insert_text: str):
+    """Copies content from template_path into output_path while replacing the first occurrence
+    of '% bottleneck_insert' with insert_text"""
+
     output_path.write_text(
         template_path
             .read_text("utf-8")
@@ -99,6 +108,8 @@ def generate_tex_file(template_path: Path, output_path: Path, insert_text: str):
 
 
 def generate_pdf(tex_file: Path):
+    """Simply calls pdflatex with fitting parameters to generate pdf from previously generated tex file"""
+
     subprocess.run(["pdflatex", "-synctex=1", "-output-format=pdf",
                     f"-output-directory={tex_file.parent}", f"-aux-directory={tex_file.parent / 'aux'}",
                     f"-include-directory={Path(__file__).parent}", tex_file])
@@ -110,9 +121,12 @@ if __name__ == "__main__":
         description="Easily create beautiful pages for whisky tastings")
 
     parser.add_argument("filename")
-    parser.add_argument("-v", "--vault", nargs=1, type=Path, default=Path.home() / "Documents/vaults/whiskey/")
-    parser.add_argument("-o", "--output", nargs=1, type=Path, default=Path.cwd() / "whisky_tasting.tex")
-    parser.add_argument("-t", "--tex-only", action="store_true")
+    parser.add_argument("-v", "--vault",
+                        nargs=1, type=Path, default=Path.home() / "Documents/vaults/whiskey/")
+    parser.add_argument("-o", "--output",
+                        nargs=1, type=Path, default=Path.cwd() / "whisky_tasting.tex")
+    parser.add_argument("-t", "--tex-only",
+                        action="store_true")
 
     args = parser.parse_args()
 
