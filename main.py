@@ -1,57 +1,8 @@
 import re
 import subprocess
 from pathlib import Path
-from dataclasses import dataclass
-from enum import StrEnum
+from whisky import *
 import argparse
-
-
-@dataclass
-class WhiskyBase:
-    name: str
-
-@dataclass
-class Whisky(WhiskyBase):
-    """Contains well-formed whiskey-data to transform into text-format"""
-
-    type: str
-    region: str
-    distillery: str
-    age: str
-    abv: str
-    casks: str
-    chill_filtered: str
-    coloured: str
-
-    def is_chill_filtered(self) -> bool:
-        return self.chill_filtered != " "
-
-    def is_coloured(self) -> bool:
-        return self.coloured != " "
-
-    def to_tex_str(self) -> str:
-        return (f"\\whiskey{{{self.name}}}"
-                f"{{{self.type}}}"
-                f"{{{self.abv.replace(',', '.')}}}"
-                f"{{{'Kühlgefiltert' if self.is_chill_filtered() else 'Nicht kühlgefiltert'}, "
-                f"{'mit Zuckercouleur' if self.is_coloured() else 'ohne Farbstoff'}}}"
-                f"{{{self.distillery.strip('[]')} ({self.region})}}"
-                f"{{{self.age}}}"
-                f"{{{self.casks}}}")
-
-@dataclass
-class WhiskyError(WhiskyBase):
-    """Contains ill-formed whiskey-data with an error message"""
-
-    class ErrorType(StrEnum):
-        Unknown = "Unknown Error"
-        FileNotFound = "File does not exist"
-        NoPatternMatch = "File does not match pattern"
-
-    error_type: ErrorType = ErrorType.Unknown
-
-    def __str__(self):
-        return f"[!!] For dataset {self.name}: {self.error_type}"
 
 
 def extract_obsidian_links(file_name: Path) -> list[str]:
@@ -65,12 +16,11 @@ def read_whisky_data(file_name: Path) -> WhiskyBase:
     """Extracts whiskey data from a well-formed data file provided by file_name
     :param file_name: Path to the file to read
     :return: Whisky on success, otherwise WhiskyError"""
-
     if not file_name.is_file():
         return WhiskyError(file_name.stem, WhiskyError.ErrorType.FileNotFound)
 
     pattern: re.Pattern = re.compile(
-        r"# (?P<name>.*)\s+(?:## Eigenschaften\s+)?"
+        r"^\s*# (?P<name>.*)\s+(?:## Eigenschaften\s+)?"
         r"- \[(?P<chill_filtered>.?)] Kühlgefiltert\s+"
         r"- \[(?P<coloured>.)] Gefärbt\s+"
         r"- Typ: (?P<type>.*?)\s+"
@@ -91,14 +41,12 @@ def collect_whisky_data(vault_dir: Path, whisky_names: list[str]) -> list[Whisky
     :param vault_dir: Path to obsidian vault containing files listed in whisky_names
     :param whisky_names: List of file names to read
     :return: List containing Whisky-instances for each successfully read dataset, WhiskyError-instances for all other"""
-
     return [read_whisky_data(vault_dir / f"{name}.md") for name in whisky_names]
 
 
 def generate_tex_file(template_path: Path, output_path: Path, insert_text: str):
     """Copies content from template_path into output_path while replacing the first occurrence
     of '% bottleneck_insert' with insert_text"""
-
     output_path.write_text(
         template_path
             .read_text("utf-8")
@@ -109,13 +57,15 @@ def generate_tex_file(template_path: Path, output_path: Path, insert_text: str):
 
 def generate_pdf(tex_file: Path):
     """Simply calls pdflatex with fitting parameters to generate pdf from previously generated tex file"""
-
     subprocess.run(["pdflatex", "-synctex=1", "-output-format=pdf",
                     f"-output-directory={tex_file.parent}", f"-aux-directory={tex_file.parent / 'aux'}",
                     f"-include-directory={Path(__file__).parent}", tex_file])
 
 
 if __name__ == "__main__":
+
+    # Setup argument parser
+
     parser = argparse.ArgumentParser(
         prog="bottleneck",
         description="Easily create beautiful pages for whisky tastings")
@@ -130,6 +80,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Read from input file
+
     tasting_file_path: Path = args.vault / args.filename
     print(f"Extracting data from: {tasting_file_path}")
     if not tasting_file_path.exists():
@@ -138,9 +90,13 @@ if __name__ == "__main__":
 
     whisky_link_list: list[str] = extract_obsidian_links(tasting_file_path)
 
+    # Validate data
+
     if not whisky_link_list:
         print(f"[!!] No file links were found in {tasting_file_path}")
         exit(0)
+
+    # Load from all found associated files
 
     print(f"Looking for relevant data")
     whisky_list: list[WhiskyBase] = collect_whisky_data(args.vault, whisky_link_list)
@@ -153,12 +109,16 @@ if __name__ == "__main__":
     for w in whisky_list:
         print(f"\tFound: {w.name}")
 
+    # Create TEX file
+
     print(f"Generating TEX file {args.output}")
     generate_tex_file(
         template_path=Path(__file__).parent / "template.tex",
         output_path=args.output,
         insert_text="\n\n".join([w.to_tex_str() for w in whisky_list if isinstance(w, Whisky)])
     )
+
+    # Optionally create a PDF document
 
     if args.tex_only:
         exit(0)
