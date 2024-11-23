@@ -70,15 +70,15 @@ def read_whisky_data(file_name: Path) -> WhiskyBase:
         return WhiskyError(file_name.stem, WhiskyError.ErrorType.FileNotFound)
 
     pattern: re.Pattern = re.compile(
-        r"# (?P<name>.*)\s+"
+        r"# (?P<name>.*)\s+(?:## Eigenschaften\s+)?"
         r"- \[(?P<chill_filtered>.?)] Kühlgefiltert\s+"
         r"- \[(?P<coloured>.)] Gefärbt\s+"
         r"- Typ: (?P<type>.*?)\s+"
         r"- Region: (?P<region>.*?)\s+"
-        r"- Destillerie: (?P<distillery>.*?)\s+"
+        r"- Destillerie: (?:\[+[^|]+\|)?(?P<distillery>.*?)]*\s+"
         r"- Alter: (?P<age>.*?)\s+"
         r"- Stärke: (?P<abv>.*?)%.*?\s+"
-        r"- Reifung: (?P<casks>.*)\s+")
+        r"- Reifung: (?P<casks>.*)\s+", re.RegexFlag.MULTILINE)
 
     if data := pattern.search(file_name.read_text("utf-8")):
         return Whisky(**data.groupdict())
