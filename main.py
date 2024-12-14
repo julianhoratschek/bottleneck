@@ -1,7 +1,7 @@
 import re
 import subprocess
 from pathlib import Path
-from whisky import *
+from whisky import WhiskyError, WhiskyBase, Whisky
 import argparse
 
 
@@ -9,13 +9,19 @@ def extract_obsidian_links(file_name: Path) -> list[str]:
     """Extracts the content of all obsidian links from obsidian lists
     :param file_name: File to read links from
     :return: List of strings of all obsidian links in lists"""
-    return [it[1] for it in re.finditer(r"- \[\[([^]]+)]]", file_name.read_text("utf-8"))]
+
+    return [it[1]
+            for it in re.finditer(
+                r"- \[\[([^]]+)]]",
+                file_name.read_text("utf-8"))
+            ]
 
 
 def read_whisky_data(file_name: Path) -> WhiskyBase:
     """Extracts whiskey data from a well-formed data file provided by file_name
     :param file_name: Path to the file to read
     :return: Whisky on success, otherwise WhiskyError"""
+
     if not file_name.is_file():
         return WhiskyError(file_name.stem, WhiskyError.ErrorType.FileNotFound)
 
@@ -41,17 +47,20 @@ def collect_whisky_data(vault_dir: Path, whisky_names: list[str]) -> list[Whisky
     :param vault_dir: Path to obsidian vault containing files listed in whisky_names
     :param whisky_names: List of file names to read
     :return: List containing Whisky-instances for each successfully read dataset, WhiskyError-instances for all other"""
-    return [read_whisky_data(vault_dir / f"{name}.md") for name in whisky_names]
+
+    return [read_whisky_data(vault_dir / f"{name}.md")
+            for name in whisky_names]
 
 
 def generate_tex_file(template_path: Path, output_path: Path, insert_text: str):
     """Copies content from template_path into output_path while replacing the first occurrence
     of '% bottleneck_insert' with insert_text"""
+
     output_path.write_text(
         template_path
-            .read_text("utf-8")
-            .replace("% bottleneck_insert", insert_text, 1),
-        "utf-8"
+        .read_text(encoding="utf-8")
+        .replace("% bottleneck_insert", insert_text, 1),
+        encoding="utf-8"
     )
 
 
@@ -72,9 +81,11 @@ if __name__ == "__main__":
 
     parser.add_argument("filename")
     parser.add_argument("-v", "--vault",
-                        nargs=1, type=Path, default=Path.home() / "Documents/vaults/whiskey/")
+                        nargs=1, type=Path,
+                        default=Path.home() / "Documents/vaults/whiskey/")
     parser.add_argument("-o", "--output",
-                        nargs=1, type=Path, default=Path.cwd() / "whisky_tasting.tex")
+                        nargs=1, type=Path,
+                        default=Path.cwd() / "whisky_tasting.tex")
     parser.add_argument("-t", "--tex-only",
                         action="store_true")
 
@@ -98,11 +109,14 @@ if __name__ == "__main__":
 
     # Load from all found associated files
 
-    print(f"Looking for relevant data")
-    whisky_list: list[WhiskyBase] = collect_whisky_data(args.vault, whisky_link_list)
+    print("Looking for relevant data")
+    whisky_list: list[WhiskyBase] =\
+            collect_whisky_data(args.vault, whisky_link_list)
 
     print("Validating read data")
-    if error_list := [str(w) for w in whisky_list if isinstance(w, WhiskyError)]:
+    if error_list := [str(w)
+                      for w in whisky_list
+                      if isinstance(w, WhiskyError)]:
         print("\n".join(error_list))
         exit(0)
 
@@ -115,7 +129,12 @@ if __name__ == "__main__":
     generate_tex_file(
         template_path=Path(__file__).parent / "template.tex",
         output_path=args.output,
-        insert_text="\n\n".join([w.to_tex_str() for w in whisky_list if isinstance(w, Whisky)])
+        insert_text="\n\n".join(
+            [w.to_tex_str()
+             for w in whisky_list
+             if isinstance(w, Whisky)
+             ]
+        )
     )
 
     # Optionally create a PDF document

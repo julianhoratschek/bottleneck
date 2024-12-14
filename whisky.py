@@ -3,11 +3,11 @@ from enum import StrEnum
 from typing import ClassVar
 
 
-
 @dataclass
 class WhiskyBase:
     default_string: ClassVar[str] = "Keine Angabe"
     name: str
+
 
 @dataclass
 class Whisky(WhiskyBase):
@@ -20,7 +20,9 @@ class Whisky(WhiskyBase):
     :ivar casks: Was it aged in special casks?
     :ivar chill_filtered: ' ', 'X' or '?' to indicate chill filtering
     :ivar coloured: ' ', 'X' or '?' to indicate colouring"""
+
     type: str = WhiskyBase.default_string
+
     region: str = WhiskyBase.default_string
     distillery: str = WhiskyBase.default_string
     age: str = WhiskyBase.default_string
@@ -35,6 +37,7 @@ class Whisky(WhiskyBase):
 
     def _get_chill_filtered(self) -> str:
         """Returns appropriate string depending on self.chill_filtered"""
+
         match self.chill_filtered:
             case " ":
                 return "Nicht kühlgefiltert"
@@ -46,6 +49,7 @@ class Whisky(WhiskyBase):
 
     def _get_coloured(self) -> str:
         """Returns appropriate string depending on self.coloured"""
+
         match self.coloured:
             case " ":
                 return "ohne Farbstoff"
@@ -57,6 +61,7 @@ class Whisky(WhiskyBase):
 
     def to_tex_str(self) -> str:
         """Generates insert for tex-file from this instance. Assumes, the tex-file will include whisxy.sty"""
+
         return (f"\\whiskey{{{self._or_empty(self.name)}}}"
                 f"{{{self._or_empty(self.type)}}}"
                 f"{{{self._or_empty(self.abv.replace(',', '.'))}}}"
@@ -64,6 +69,7 @@ class Whisky(WhiskyBase):
                 f"{{{self._or_empty(self.distillery.strip('[]'))} ({self._or_empty(self.region)})}}"
                 f"{{{self._or_empty(self.age)}}}"
                 f"{{{self._or_empty(self.casks)}}}")
+
 
 @dataclass
 class WhiskyError(WhiskyBase):
