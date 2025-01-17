@@ -39,7 +39,7 @@ class Whisky(WhiskyBase):
         """Returns appropriate string depending on self.chill_filtered"""
 
         match self.chill_filtered:
-            case " ":
+            case "~":
                 return "Nicht kühlgefiltert"
             case "X" | "x":
                 return "Kühlgefiltert"
@@ -51,7 +51,7 @@ class Whisky(WhiskyBase):
         """Returns appropriate string depending on self.coloured"""
 
         match self.coloured:
-            case " ":
+            case "~":
                 return "ohne Farbstoff"
             case "X" | "x":
                 return "mit Zuckercouleur"

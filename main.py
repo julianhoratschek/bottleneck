@@ -111,11 +111,10 @@ if __name__ == "__main__":
 
     print("Looking for relevant data")
     whisky_list: list[WhiskyBase] =\
-            collect_whisky_data(args.vault, whisky_link_list)
+        collect_whisky_data(args.vault, whisky_link_list)
 
     print("Validating read data")
-    if error_list := [str(w)
-                      for w in whisky_list
+    if error_list := [str(w) for w in whisky_list
                       if isinstance(w, WhiskyError)]:
         print("\n".join(error_list))
         exit(0)
