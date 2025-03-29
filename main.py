@@ -10,11 +10,13 @@ def extract_obsidian_links(file_name: Path) -> list[str]:
     :param file_name: File to read links from
     :return: List of strings of all obsidian links in lists"""
 
-    return [it[1]
-            for it in re.finditer(
-                r"- \[\[([^]]+)]]",
-                file_name.read_text("utf-8"))
-            ]
+    matches = re.findall(r"- \[\[([^]]+)]]", file_name.read_text("utf-8"))
+    result = [None] * len(matches)
+    for i, m in enumerate(matches):
+        parts = m.split('|')
+        result[i] = parts[1] if len(parts) > 1 else parts[0]
+
+    return result
 
 
 def read_whisky_data(file_name: Path) -> WhiskyBase:
